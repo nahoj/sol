@@ -9,12 +9,12 @@ Generates an SVG portraying the Solar System "on a square-root scale"
 
 from datetime import date
 from enum import Enum
-from math import cos, sin
+from math import cos, sin, radians
 import sys
 
 
 language = "fr"
-known_languages = ["en", "fr"]
+known_languages = ["", "en", "fr"]
 
 
 def km_of_au(x):
@@ -63,16 +63,17 @@ class A:
         fmt = "  <circle cx='%.1f' cy='%.1f' r='%.1f' fill='%s' />\n"
         res = fmt % (x, 0, scale(self.rad), self.color)
 
-        if self.name["en"] == "Sun":
-            fmt = "  <g transform='translate(%.1f %.1f) rotate(%d)'>"
-            res += fmt % (x, -scale(self.rad) - scale(40000), -self.dir.value)
-            fmt = "<text text-anchor='start'>%s</text></g>\n"
-            res += fmt % (self.name[language])
-        else:
-            fmt = "  <g transform='translate(%.1f %.1f) rotate(%d)'>"
-            res += fmt % (x, scale(self.rad) + scale(40000), -self.dir.value)
-            fmt = "<text text-anchor='%s'>%s</text></g>\n"
-            res += fmt % (self.dir.text_anchor(), self.name[language])
+        if language != "":
+            if self.name["en"] == "Sun":
+                fmt = "  <g transform='translate(%.1f %.1f) rotate(%d)'>"
+                res += fmt % (x, -scale(self.rad) - scale(40000), -self.dir.value)
+                fmt = "<text text-anchor='start'>%s</text></g>\n"
+                res += fmt % (self.name[language])
+            else:
+                fmt = "  <g transform='translate(%.1f %.1f) rotate(%d)'>"
+                res += fmt % (x, scale(self.rad) + scale(40000), -self.dir.value)
+                fmt = "<text text-anchor='%s'>%s</text></g>\n"
+                res += fmt % (self.dir.text_anchor(), self.name[language])
 
         # children
         if self.satellites != []:
@@ -89,23 +90,37 @@ class A:
 class R:
     dir = Dir.right
 
-    def __init__(self, inner_rad, outer_rad, color):
+    def __init__(self, ename, fname, inner_rad, outer_rad, color, name_angle):
+        self.name = { "en": ename, "fr": fname }
         self.inner_rad = inner_rad
         self.outer_rad = outer_rad
         self.color = color
+        self.name_angle = radians(name_angle)
 
     def __str__(self):
-        def ring_border(rad):
-            angle = 0.5
-            r = scale(rad)
-            x = r * cos(angle)
-            y1 = r * sin(angle)
-            y2 = -r * sin(angle)
-            fmt = "  <path class='ring' d='M %f %f A %f %f 0 0 0 %f %f' stroke='%s'  />\n"
-            return fmt % (x, y1, r, r, x, y2, self.color)
+        angle = 0.5
+        ro = scale(self.outer_rad)
+        ri = scale(self.inner_rad)
+        xo = ro * cos(angle)
+        xi = ri * cos(angle)
+        yo = ro * sin(angle)
+        yi = ri * sin(angle)
+        data = "M %f %f A %f %f 0 0 0 %f %f L %f %f A %f %f 0 0 1 %f %f Z"
+        data %= xo, yo, ro, ro, xo, -yo, xi, -yi, ri, ri, xi, yi
 
-        res = ring_border(self.inner_rad)
-        res += ring_border(self.outer_rad)
+        stroke_width = scale(scale(self.outer_rad)) / 5
+        fmt = "  <path class='ring' d='%s' stroke-width='%.1f' fill='%s' />\n"
+        res = fmt % (data, stroke_width, self.color)
+
+        if language != "":
+            rt = (scale(self.inner_rad)+scale(self.outer_rad)) / 2
+            xt = rt * cos(self.name_angle)
+            yt = rt * sin(self.name_angle)
+            fmt = "  <g transform='translate(%.1f %.1f) rotate(%d)'>"
+            res += fmt % (xt, yt, -self.dir.value)
+            fmt = "<text text-anchor='%s'>%s</text></g>\n"
+            res += fmt % (self.dir.text_anchor(), self.name[language])
+
         return res
 
 
@@ -123,6 +138,9 @@ class S:
         self.mkm_to = mkm_to
 
     def __str__(self):
+        if language == "":
+            return ""
+
         line ="  <line x1='%.1f' y1='%.1f' x2='%.1f' y2='%.1f' />\n"
 
         def grad_text(i):
@@ -193,7 +211,7 @@ universe = [
       S ((scale(149597888)+scale(227936637))/2, svg_height*0.46,
          svg_height/16, -4, -2, -2, 0),
       A ("Mars", "Mars", 227936637, 3396, "red", []),
-      R (308000000, 489000000, "grey"),
+      R ("Asteroid belt", "Ceinture d'astéroïdes", 308000000, 489000000, "#111111", 2.5),
       A ("Ceres", "Cérès", 414703838, 487, "grey", []),
       A ("Jupiter", "Jupiter", 778412027, 71492, "orange",
          [A ("Io", "Io", 421800, 3643, "yellow", []),
@@ -201,7 +219,8 @@ universe = [
           A ("Ganymede", "Ganymède", 1070400, 5262, "green", []),
           A ("Callisto", "Callisto", 1882700, 4820, "red", []) ]),
       A ("Saturn", "Saturne", 1421179772, 60268, "orange",
-         [R (92000, 136775, "grey"),
+         [R ("B Ring", "Anneau B", 92000, 117580, "tan", 45),
+          R ("A Ring", "Anneau A", 122170, 136775, "tan", 35),
           A ("Mimas", "Mimas", 185600, 396, "grey", []),
           A ("Enceladus", "Encelade", 238020, 504, "grey", []),
           A ("Tethys", "Téthys", 294992, 1066, "grey", []),
@@ -241,6 +260,7 @@ def main():
   <!-- Generated %s -->
   <style>
 path.ring {
+  stroke: grey;
   stroke-dasharray: 2,1;
 }
 text {
