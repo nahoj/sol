@@ -64,16 +64,10 @@ class A:
         res = fmt % (x, 0, scale(self.rad), self.color)
 
         if language != "":
-            if self.name["en"] == "Sun":
-                fmt = "  <g transform='translate(%.1f %.1f) rotate(%d)'>"
-                res += fmt % (x, -scale(self.rad) - scale(40000), -self.dir.value)
-                fmt = "<text text-anchor='start'>%s</text></g>\n"
-                res += fmt % (self.name[language])
-            else:
-                fmt = "  <g transform='translate(%.1f %.1f) rotate(%d)'>"
-                res += fmt % (x, scale(self.rad) + scale(40000), -self.dir.value)
-                fmt = "<text text-anchor='%s'>%s</text></g>\n"
-                res += fmt % (self.dir.text_anchor(), self.name[language])
+            fmt = "  <g transform='translate(%.1f %.1f) rotate(%d)'>"
+            res += fmt % (x, scale(self.rad) + scale(40000), -self.dir.value)
+            fmt = "<text text-anchor='%s'>%s</text></g>\n"
+            res += fmt % (self.dir.text_anchor(), self.name[language])
 
         # children
         if self.satellites != []:
@@ -128,14 +122,14 @@ class R:
 class S:
     dir = Dir.right
 
-    def __init__(self, dist, length, width, au_from, au_to, mkm_from, mkm_to):
+    def __init__(self, dist, length, width, au_from, au_to, gm_from, gm_to):
         self.dist = dist
         self.length = length
         self.width = width
         self.au_from = au_from
         self.au_to = au_to
-        self.mkm_from = mkm_from
-        self.mkm_to = mkm_to
+        self.gm_from = gm_from
+        self.gm_to = gm_to
 
     def __str__(self):
         if language == "":
@@ -159,7 +153,7 @@ class S:
             res += fmt % (anchor, text)
             return res
 
-        def mkm_text(x, text):
+        def gm_text(x, text):
             y = self.width/2+scale(10000)
             my_dir = self.dir.next()
             anchor = my_dir.text_anchor()
@@ -169,7 +163,7 @@ class S:
             res += fmt % (anchor, text)
             return res
 
-        def str_of_grads(a, b, y1, y2, unit="Mkm"):
+        def str_of_grads(a, b, y1, y2, unit="Gm"):
             res = ""
             for i in range(a, b+1):
                 for j in range(1, 10):
@@ -182,7 +176,7 @@ class S:
                         if unit=="AU":
                             res += au_text(x, text)
                         else:
-                            res += mkm_text(x, text)
+                            res += gm_text(x, text)
             return res
 
         res = "<g transform='translate(%.1f) rotate(-90)' style='stroke: white; font-size: smaller'>\n" % self.dist
@@ -190,20 +184,19 @@ class S:
         res += line % (0, -self.width/2, 0, self.width/2)
         res += au_text(self.length, "UA" if language=="fr" else "AU")
         res += str_of_grads(self.au_from, self.au_to, -self.width/2, 0, unit="AU")
-        res += mkm_text(self.length, "Mkm")
-        res += str_of_grads(self.mkm_from, self.mkm_to, 0, self.width/2)
+        res += gm_text(self.length, "Gm")
+        res += str_of_grads(self.gm_from, self.gm_to, 0, self.width/2)
         res += "</g>\n"
         return res
 
 
-uni_width = 5000000000
-svg_width = scale(uni_width)
+sun_rad = 696000
 
 svg_height = 2 * scale(5000000)
-uni_height = unscale(svg_height)
+svg_width = 7200
 
 universe = [
-  A ("Sun", "Soleil", unscale(svg_height/2), 696000, "yellow",
+  A ("Sun", "Soleil", unscale(svg_height/2), sun_rad, "yellow",
      [A ("Mercury", "Mercure", 57909176, 2440, "grey", []),
       A ("Venus", "Vénus", 108208930, 6052, "grey", []),
       A ("Earth", "Terre", 149597888, 6378, "blue",
@@ -237,7 +230,8 @@ universe = [
       A ("Neptune", "Neptune", 4503443661, 24764, "blue",
          [A ("Proteus", "Protée", 117646, 416, "grey", []),
           A ("Triton", "Triton", 354759, 2707, "grey", []) ]) ]),
-  S (svg_height*7/8, svg_width*0.99, svg_height/8, -3, 1, -1, 3) ]
+  S (svg_height*3/4+scale(sun_rad)/2, (svg_width-svg_height/2)*0.99, svg_height/8,
+     -3, 1, -1, 3) ]
 
 
 def main():
@@ -272,7 +266,7 @@ text {
 
     print(intro)
     print("  <rect width='%.1f' height='%.1f' x='0' y='0' fill='black' />" % (w, h))
-    print("<g transform='rotate(90)' style='font-size: x-small'>")
+    print("<g transform='translate(%.1f) rotate(90)' style='font-size: x-small'>" % (h/2))
     for obj in universe:
         obj.dir = Dir.down
         print(obj)

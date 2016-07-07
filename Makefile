@@ -23,7 +23,7 @@ png: sol.bare.large.png sol.en.large.png sol.fr.large.png
 	inkscape -e $@ $< -w 1080
 
 %.large.png: %.svg
-	inkscape -e $@ $< -w 14142
+	inkscape -e $@ $< -w 14400
 
 clean:
 	rm -f sol.bare.svg sol.en.svg sol.fr.svg
