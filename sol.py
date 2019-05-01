@@ -7,10 +7,14 @@
 Generates an SVG portraying the Solar System "on a square-root scale"
 '''
 
+import colorsys
 from datetime import date
 from enum import Enum
 from math import cos, sin, radians
+import re
 import sys
+
+import webcolors
 
 
 language = "fr"
@@ -26,6 +30,17 @@ def scale(x):
 
 def unscale(x):
     return (x*10) ** 2
+
+
+def adjust_color(html):
+    if not html.startswith('#') or re.compile('[A-F]').search(html):
+        return html
+
+    rgb = tuple(float(p.rstrip('%')) / 100 for p in webcolors.hex_to_rgb_percent(html))
+    (h, s, v) = colorsys.rgb_to_hsv(*rgb)
+    (h1, s1, v1) = (h, min(0.7, 2 * s), min(0.95, 2 * v))
+    rgb1 = colorsys.hsv_to_rgb(h1, s1, v1)
+    return webcolors.rgb_percent_to_hex(tuple('%f%%' % (x * 100) for x in rgb1))
 
 
 class Dir(Enum):
@@ -54,7 +69,7 @@ class A:
         self.name = { "en": ename, "fr": fname }
         self.dist = dist
         self.rad = rad
-        self.color = color
+        self.color = adjust_color(color)
         self.satellites = satellites
 
     def __str__(self):
@@ -88,7 +103,7 @@ class R:
         self.name = { "en": ename, "fr": fname }
         self.inner_rad = inner_rad
         self.outer_rad = outer_rad
-        self.color = color
+        self.color = adjust_color(color)
         self.name_angle = radians(name_angle)
 
     def __str__(self):
@@ -196,40 +211,40 @@ svg_height = 2 * scale(5000000)
 svg_width = 7200
 
 universe = [
-  A ("Sun", "Soleil", unscale(svg_height/2), sun_rad, "yellow",
-     [A ("Mercury", "Mercure", 57909176, 2440, "grey", []),
-      A ("Venus", "Vénus", 108208930, 6052, "grey", []),
-      A ("Earth", "Terre", 149597888, 6378, "blue",
-         [A ("Moon", "Lune", 384399, 1737, "grey", [])] ),
+  A ("Sun", "Soleil", unscale(svg_height/2), sun_rad, "#FFF9FD",
+     [A ("Mercury", "Mercure", 57909176, 2440, "#414141", []),
+      A ("Venus", "Vénus", 108208930, 6052, "#ede8c6", []),
+      A ("Earth", "Terre", 149597888, 6378, "#465666",
+         [A ("Moon", "Lune", 384399, 1737, "#565548", [])] ),
       S ((scale(149597888)+scale(227936637))/2, svg_height*0.46,
          svg_height/16, -4, -2, -2, 0),
-      A ("Mars", "Mars", 227936637, 3396, "red", []),
-      R ("Asteroid belt", "Ceinture d'astéroïdes", 308000000, 489000000, "#111111", 2.5),
-      A ("Ceres", "Cérès", 414703838, 487, "grey", []),
-      A ("Jupiter", "Jupiter", 778412027, 71492, "orange",
-         [A ("Io", "Io", 421800, 3643, "yellow", []),
-          A ("Europa", "Europe", 671100, 1561, "grey", []),
-          A ("Ganymede", "Ganymède", 1070400, 5262, "green", []),
-          A ("Callisto", "Callisto", 1882700, 4820, "red", []) ]),
-      A ("Saturn", "Saturne", 1421179772, 60268, "orange",
-         [R ("B Ring", "Anneau B", 92000, 117580, "tan", 45),
-          R ("A Ring", "Anneau A", 122170, 136775, "tan", 35),
-          A ("Mimas", "Mimas", 185600, 396, "grey", []),
-          A ("Enceladus", "Encelade", 238020, 504, "grey", []),
+      A ("Mars", "Mars", 227936637, 3396, "#8d6d4d", []),
+      R ("Asteroid belt", "Ceinture d'astéroïdes", 308000000, 489000000, "#0F0F0F", 2.5),
+      A ("Ceres", "Cérès", 414703838, 487, "#8a837e", []),
+      A ("Jupiter", "Jupiter", 778412027, 71492, "#b8a99c",
+         [A ("Io", "Io", 421800, 3643, "#c8bf80", []),
+          A ("Europa", "Europe", 671100, 1561, "#92827b", []),
+          A ("Ganymede", "Ganymède", 1070400, 5262, "#6c5c49", []),
+          A ("Callisto", "Callisto", 1882700, 4820, "#483827", []) ]),
+      A ("Saturn", "Saturne", 1421179772, 60268, "#f2bb85",
+         [R ("B Ring", "Anneau B", 92000, 117580, "#736a5e", 45),
+          R ("A Ring", "Anneau A", 122170, 136775, "#afa08c", 35),
+          A ("Mimas", "Mimas", 185600, 396, "#877e71", []),
+          A ("Enceladus", "Encelade", 238020, 504, "#b2b2b4", []),
           A ("Tethys", "Téthys", 294992, 1066, "grey", []),
           A ("Dione", "Dioné", 377400, 1118, "grey", []),
           A ("Rhea", "Rhéa", 527070, 1529, "grey", []),
-          A ("Titan", "Titan", 1221870, 5151, "yellow", []),
+          A ("Titan", "Titan", 1221870, 5151, "#bb763d", []),
           A ("Iapetus", "Japet", 3560840, 1495, "grey", []) ]),
-      A ("Uranus", "Uranus", 2876679082, 25559, "blue",
-         [A ("Miranda", "Miranda", 129900, 474, "grey", []),
+      A ("Uranus", "Uranus", 2876679082, 25559, "#74acd3",
+         [A ("Miranda", "Miranda", 129900, 474, "#948571", []),
           A ("Ariel", "Ariel", 190900, 1159, "grey", []),
           A ("Umbriel", "Umbriel", 266000, 1169, "grey", []),
           A ("Titania", "Titania", 436300, 1578, "grey", []),
           A ("Oberon", "Obéron", 583500, 1523, "grey", []) ]),
-      A ("Neptune", "Neptune", 4503443661, 24764, "blue",
+      A ("Neptune", "Neptune", 4503443661, 24764, "#3852d4",
          [A ("Proteus", "Protée", 117646, 416, "grey", []),
-          A ("Triton", "Triton", 354759, 2707, "grey", []) ]) ]),
+          A ("Triton", "Triton", 354759, 2707, "#99989e", []) ]) ]),
   S (svg_height*3/4+scale(sun_rad)/2, (svg_width-svg_height/2)*0.99, svg_height/8,
      -3, 1, -1, 3) ]
 
